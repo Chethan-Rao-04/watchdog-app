@@ -4,8 +4,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:chethancn82@gmail.com}
-    password: ${MAIL_PASSWORD:fdaiqnjqyeizulvy} # Use env vars in production
+    username: ${MAIL_USERNAME:addtheusername}
+    password: ${MAIL_PASSWORD:addthepwd} # Use env vars in production
     properties:
       mail:
         smtp:
@@ -17,8 +17,8 @@ watchdog:
   check-interval: 30000  # 30 seconds for testing
   summary-interval: 7d # Summary email frequency (e.g., 30 seconds)
   email:
-    recipients: ${EMAIL_RECIPIENTS:chethanrao82@gmail.com}
-    sender: ${EMAIL_SENDER:chethancn82@gmail.com}
+    recipients: ${EMAIL_RECIPIENTS:addtheusername}
+    sender: ${EMAIL_SENDER:addtheusername}
 
 
 logging:
