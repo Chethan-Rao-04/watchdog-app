@@ -15,7 +15,6 @@ spring:
 
 watchdog:
   check-interval: 30000  # 30 seconds for testing
-  summary-interval: 7d # Summary email frequency (e.g., 30 seconds)
   email:
     recipients: ${EMAIL_RECIPIENTS:chethanrao82@gmail.com}
     sender: ${EMAIL_SENDER:chethancn82@gmail.com}
