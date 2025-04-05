@@ -1,5 +1,6 @@
 package com.charite.watchdog.service;
 
+import com.charite.watchdog.config.WatchdogProperties;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.core.DockerClientBuilder;
@@ -8,6 +9,10 @@ import org.springframework.stereotype.Service;
 import com.charite.watchdog.model.MonitoredEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.scheduling.support.CronTrigger;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,38 +20,69 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 /**
- * Service class responsible for monitoring Docker containers and system processes.
- * Entities are added dynamically via REST API and monitored periodically with email notifications.
+ * Service for monitoring Docker containers and system processes.
+ * Dynamically schedules status checks and summary reports using TaskScheduler.
  */
 @Service
-public class WatchdogService {
+public class WatchdogService implements SchedulingConfigurer{
     private final EmailService emailService;
+    private final WatchdogProperties properties;
+    private final TaskScheduler taskScheduler;
     private final List<MonitoredEntity> entities = new ArrayList<>();
     private final DockerClient dockerClient;
     private final Set<String> alertedEntities = Collections.newSetFromMap(new ConcurrentHashMap<>());  // ConcurrentHashMap ensures safe concurrent access without explicit synchronization.
     private static final Logger logger = LoggerFactory.getLogger(WatchdogService.class);
-
+    private ScheduledFuture<?> checkTask;
+    private ScheduledFuture<?> summaryTask;
     /**
-     * Constructs a new WatchdogService with the specified email service.
-     * Initializes an empty list of entities to be populated via API calls.
+     * Constructs the WatchdogService with required dependencies.
+     * Initializes the Docker client and schedules initial tasks.
      *
-     * @param emailService the service used to send email notifications
+     * @param emailService Service for sending emails
+     * @param properties Configuration properties
+     * @param taskScheduler Scheduler for managing tasks
      */
-    public WatchdogService(EmailService emailService) {
+    public WatchdogService(EmailService emailService, WatchdogProperties properties, TaskScheduler taskScheduler) {
         this.emailService = emailService;
         this.dockerClient = DockerClientBuilder.getInstance().build();
+        this.properties = properties;
+        this.taskScheduler = taskScheduler;
         logger.info("WatchdogService initialized with no static entities");
+        rescheduleTasks();
+    }
+    /**
+     * Configures the Spring scheduler to use the provided TaskScheduler.
+     * Required for dynamic scheduling via SchedulingConfigurer.
+     *
+     */
+
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+        taskRegistrar.setScheduler(taskScheduler);
+    }
+    /**
+     * Reschedules the checkStatus and sendSummary tasks with current property values.
+     * Cancels existing tasks before scheduling new ones to apply runtime updates.
+     */
+
+    public void rescheduleTasks(){
+        if(checkTask!= null){
+            checkTask.cancel(false); // Cancel existing task, false = don't interrupt if running
+        }
+        long interval = Long.parseLong(properties.getCheckInterval()); // Get check interval in milliseconds
+        checkTask = taskScheduler.scheduleAtFixedRate(this::checkStatus, interval); // Schedule periodic checks
+
+
+        if(summaryTask!= null){
+             summaryTask.cancel(false);
+
+        }
+        summaryTask = taskScheduler.schedule(this::sendSummary, new CronTrigger(properties.getSummaryInterval()));
     }
 
-    /**
-     * Adds a new entity to the list of monitored entities.
-     * Entities are added dynamically at runtime via the REST API.
-     * Checks the uniqueness of the entity
-     *
-     * @param entity the MonitoredEntity to add (Docker container or system process)
-     */
     public void addEntity(MonitoredEntity entity) {
         boolean exists = entities.stream().anyMatch(e ->
                 (entity.isDocker() && e.isDocker() && entity.getName().equals(e.getName())) ||
@@ -67,8 +103,7 @@ public class WatchdogService {
 
     /**
      * Periodically checks the status of all monitored entities.
-     * Runs at intervals specified by the watchdog.check-interval property (default: 10 minutes).
-     * Triggers email notifications for entities that stop running.
+     * Runs at intervals defined by checkInterval.
      */
     @Scheduled(fixedRateString = "${watchdog.check-interval:600000}")
     public void checkStatus() {

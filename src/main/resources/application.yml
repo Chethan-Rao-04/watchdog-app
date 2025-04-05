@@ -14,11 +14,15 @@ spring:
             enable: true
 
 watchdog:
-  check-interval: 30000  # 30 seconds for testing
-  email:
-    recipients: ${EMAIL_RECIPIENTS:addtheusername}
-    sender: ${EMAIL_SENDER:addtheusername}
+  check-interval: ${CHECK_INTERVAL:30000}
+  summary-interval: ${SUMMARY_INTERVAL:0 14 19 * * SUN} # Default Sunday 7:14 PM
+  email-recipients: ${EMAIL_RECIPIENTS:chethanrao82@gmail.com}
+  mail-username: ${MAIL_USERNAME:chethancn82@gmail.com}
+  mail-password: ${MAIL_PASSWORD:ENC(fdaiqnjqyeizulvy)}
 
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:your-secret-key}
 
 logging:
   level:
