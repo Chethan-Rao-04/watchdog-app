@@ -256,7 +256,7 @@ public class WatchdogService {
      * Sends a weekly summary report of all monitored entities.
      * The schedule is configured in application properties.
      */
-    @Scheduled(cron = "${watchdog.summary-interval}")
+    @Scheduled(cron = "${watchdog.summary-time}")
     public void sendSummary() {
         StringBuilder summary = new StringBuilder("Weekly Monitoring Summary Report\n");
         summary.append("==================================\n\n");

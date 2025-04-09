@@ -3,26 +3,39 @@
 A monitoring application for Docker containers and system processes with email alerts and weekly summaries.
 
 ## Features
-- Monitors Docker containers and system processes by PID.
-- Sends email alerts when an entity stops.
-- Provides a weekly  summary every Sunday at 19:14.
-- REST API for managing monitored entities .
-
+- **Continuous Monitoring**: Tracks Docker containers and system processes by their PID
+- **Instant Alerts**: Sends immediate email notifications when monitored entities stop
+- **Status Reporting**: Provides comprehensive weekly summary reports every Sunday
+- **Management API**: RESTful endpoints for managing monitored entities
+- **Secure Configuration**: Jasypt encryption support for sensitive credentials
+- 
 ## Prerequisites
-- Java 21 (e.g., Amazon Corretto 21.0.5)
-- Maven 3.9.9
-- Docker
+- Java 17
+- Maven 3.9.x
+- Docker (for container monitoring)
+- SMTP server access (for notifications)
 
-## Libraries Used
-- **Spring Boot Starter Web** (2.7.18) - REST API and web framework.
-- **Spring Boot Starter Mail** (2.7.18) - Email notification support.
-- **Docker Java** (3.4.2) - Docker client for container monitoring.
-- **Lombok** - Code simplification with annotations (e.g., `@Data`).
+## Technical Stack
+
+- **Spring Boot**: Version 2.7.18
+- **Docker Java Client**: Version 3.4.2 for container monitoring
+- **Spring Mail**: For sending email notifications
+- **Jasypt**: For encrypting sensitive configuration values
+- **Lombok**: For reducing boilerplate code
+-
 
 ## Configuration
+
+### Application Settings
+
+## Encryption ( Email sender password)
+Utilise config/EncryptPassword.java
+
+
 Edit `application.yml`:
 - `watchdog.check-interval`: Monitoring frequency (ms).
-- `spring.mail`: SMTP settings for email.
+- `summary-time`: Cron notation for Weekly summary time (eq- "0 0 11 * * WED")
+- `spring.mail`: SMTP settings for email. (username,encrypted password, recipients, host, port)
 
 ## Environment variables
 -  `export JASYPT_ENCRYPTOR_PASSWORD=watchdog123`            
@@ -32,63 +45,41 @@ Edit `application.yml`:
 1. Build: `mvn clean install`
 2. Run: `mvn spring-boot:run`
 
-## Encryption
-
-    ```java -cp jasypt-1.9.3.jar org.jasypt.intf.cli.JasyptPBEStringEncryptionCLI \
-     input="abcd efgh ijkl mnop" \
-     password=your-secret-key \
-     algorithm=PBEWithMD5AndDES```
-
-    export JASYPT_ENCRYPTOR_PASSWORD="your-secret-key"
-
-## Testing with sample data (DOCKER)
-docker run --name test-colima -d nginx
 
 
-docker start test-colima
-docker start test-colima-stopped
-docker stop test-colima-stopped
+## Docker Container Monitoring
+
+### Start a Docker Container
+docker run --name test-container -d nginx
+
+### Add it to monitoring:
+
+curl -X POST "http://localhost:8080/watchdog/entities" \
+-H "Content-Type: application/json" \
+-d '{"name":"test-container","docker":true,"active":true}'
+
+### Trigger an alert:
+docker stop test-container
 
 
 
-Add the process to the MonitoredEntities using API or directly via application.yml
+### Start a test process:
+sleep 3600 &
+echo $!  # Note this PID
 
+### Add it to monitoring:
 
-    
-# API Endpoints
+curl -X POST "http://localhost:8080/watchdog/entities" \
+-H "Content-Type: application/json" \
+-d '{"pid":PROCESS_PID,"docker":false,"active":true}'
 
-# Test for Docker Container
-
-
-## Start a Docker Container
-
-docker run --name test-ab -d nginx
-
-## Add the Docker Container to the Monitored Entities
-
-curl -X POST "http://localhost:8080/watchdog/entities" -H "Content-Type: application/json" -d '{"name":"test-ab","docker":true,"active":true}'
+### Trigger an alert:
+docker stop test-container
 
 ## List all monitored entities
 
 curl http://localhost:8080/watchdog/entities
 
-# Trigger alert by stopping a Docker Container
-docker stop test-ab
-
-
-
-
-# Create a Simple Process
-- Start a simple process and note the PID
-- ```sleep 3600 &```
-
-#  Add the new System Process to the Monitored Entities 
-- `POST Method ` - ```  curl -X POST "http://localhost:8080/watchdog/entities" \
-  -H "Content-Type: application/json" \
-  -d '{"pid":97212,"docker":false,"active":true}'  ``` \
-
-# STOP the running entities
-docker stop test-conta
 
 
 

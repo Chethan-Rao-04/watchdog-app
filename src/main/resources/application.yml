@@ -20,7 +20,7 @@ spring:
 
 watchdog:
   check-interval: 600000         # Initial value
-  summary-interval: 0 0 11 * * WED  # Initial value
+  summary-time: 0 0 11 * * WED  # Initial value
   email-recipients: # Add Recipients here
 logging:
   level:
