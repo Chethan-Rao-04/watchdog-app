@@ -24,15 +24,26 @@ Edit `application.yml`:
 - `watchdog.check-interval`: Monitoring frequency (ms).
 - `spring.mail`: SMTP settings for email.
 
+## Environment variables
+-  `export JASYPT_ENCRYPTOR_PASSWORD=watchdog123`            
+  
+
 ## Running
 1. Build: `mvn clean install`
 2. Run: `mvn spring-boot:run`
 
+## Encryption
+
+    ```java -cp jasypt-1.9.3.jar org.jasypt.intf.cli.JasyptPBEStringEncryptionCLI \
+     input="abcd efgh ijkl mnop" \
+     password=your-secret-key \
+     algorithm=PBEWithMD5AndDES```
+
+    export JASYPT_ENCRYPTOR_PASSWORD="your-secret-key"
+
 ## Testing with sample data (DOCKER)
 docker run --name test-colima -d nginx
-docker run --name test-colima-stopped -d busybox sleep 3600
 
-These entites are added to Monitored Entities List using the API or directly via application.yml
 
 docker start test-colima
 docker start test-colima-stopped
@@ -44,40 +55,42 @@ Add the process to the MonitoredEntities using API or directly via application.y
 
 
     
-## API Endpoints
+# API Endpoints
 
-# Add New Entity 
-- `POST /watchdog/entities` - Add an entity (e.g., `{"name":"test","docker":true,"active":true}`).
-
-# Start a Docker Container
-docker run --name test-container-test -d nginx  
-colima start test-container-running
+# Test for Docker Container
 
 
+## Start a Docker Container
 
-# A Add the Docker Container to the Monitored Entities
+docker run --name test-ab -d nginx
 
-- `POST Method ` - ```  curl -X POST "http://localhost:8080/watchdog/entities" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"test-container-test","docker":true,"active":true}'  ``` \
+## Add the Docker Container to the Monitored Entities
+
+curl -X POST "http://localhost:8080/watchdog/entities" -H "Content-Type: application/json" -d '{"name":"test-ab","docker":true,"active":true}'
+
+## List all monitored entities
+
+curl http://localhost:8080/watchdog/entities
+
+# Trigger alert by stopping a Docker Container
+docker stop test-ab
+
+
 
 
 # Create a Simple Process
-- Start a simple process-   ```sleep 3600 &```
-- To fetch the PID - ```echo $!```
-- To get details -   ```ps -p 15801  ```  NOTE: Replace with actual PID
-
+- Start a simple process and note the PID
+- ```sleep 3600 &```
 
 #  Add the new System Process to the Monitored Entities 
 - `POST Method ` - ```  curl -X POST "http://localhost:8080/watchdog/entities" \
   -H "Content-Type: application/json" \
-  -d '{"pid":24498,"docker":false,"active":true}'  ``` \
+  -d '{"pid":97212,"docker":false,"active":true}'  ``` \
+
+# STOP the running entities
+docker stop test-conta
 
 
 
-# List all monitored entities
-- `GET Method Example` - ```  curl http://localhost:8080/watchdog/entities  ```
 
-curl -X POST "http://localhost:8080/watchdog/entities" \
--H "Content-Type: application/json" \
--d '{"name":myContainer123,"docker":true,"active":true}'
+

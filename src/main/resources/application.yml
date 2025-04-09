@@ -1,11 +1,15 @@
+# minimal config for the mail details.
+
 spring:
   application:
     name: watchdog
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:addtheusername}
-    password: ${MAIL_PASSWORD:addthepwd} # Use env vars in production
+    username: chethancn82@gmail.com
+    #add your encrypted password here
+    # ( utilize config/EncryptPassword.java to encrypt the password)
+    password:
     properties:
       mail:
         smtp:
@@ -13,17 +17,15 @@ spring:
           starttls:
             enable: true
 
+
 watchdog:
-  check-interval: ${CHECK_INTERVAL:30000}
-  summary-interval: ${SUMMARY_INTERVAL:0 14 19 * * SUN} # Default Sunday 7:14 PM
-  email-recipients: ${EMAIL_RECIPIENTS:chethanrao82@gmail.com}
-  mail-username: ${MAIL_USERNAME:chethancn82@gmail.com}
-  mail-password: ${MAIL_PASSWORD:ENC(fdaiqnjqyeizulvy)}
-
-jasypt:
-  encryptor:
-    password: ${JASYPT_ENCRYPTOR_PASSWORD:your-secret-key}
-
+  check-interval: 600000         # Initial value
+  summary-interval: 0 0 11 * * WED  # Initial value
+  email-recipients: # Add Recipients here
 logging:
   level:
-    com.charite.watchdog: DEBUG  # Show DEBUG, INFO, WARN, ERROR from your package
+    org.jasypt: DEBUG
+    com.charite.watchdog.service: DEBUG
+jasypt:
+  encryptor:
+    algorithm: PBEWithMD5AndDES

@@ -13,22 +13,20 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
-    private final String recipients;
-    private final String sender;
+    private final String mailUsername;
+    private final String emailRecipients;
 
     /**
      * Constructs a new EmailService with the specified mail sender and email configuration.
-     *
-     * @param mailSender the JavaMailSender instance for sending emails
-     * @param recipients comma-separated list of email recipients from configuration
-     * @param sender the sender email address from configuration
      */
     public EmailService(JavaMailSender mailSender,
-                        @Value("${watchdog.email.recipients}") String recipients,
-                        @Value("${watchdog.email.sender}") String sender) {
+                        @Value("${spring.mail.username}")String mailUsername,
+                        @Value("${watchdog.email-recipients}") String emailRecipients
+                         )
+    {
         this.mailSender = mailSender;
-        this.recipients = recipients;
-        this.sender = sender;
+        this.mailUsername = mailUsername;
+        this.emailRecipients = emailRecipients;
     }
 
     /**
@@ -39,8 +37,8 @@ public class EmailService {
      */
     public void sendEmail(String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(sender);
-        message.setTo(recipients.split(","));
+        message.setFrom(mailUsername); // Use mailUsername as sender
+        message.setTo(emailRecipients.split(","));
         message.setSubject(subject);
         message.setText(text);
         mailSender.send(message);
