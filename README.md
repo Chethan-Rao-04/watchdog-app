@@ -28,58 +28,73 @@ A monitoring application for Docker containers and system processes with email a
 
 ### Application Settings
 
-## Encryption ( Email sender password)
-Utilise config/EncryptPassword.java
-
-
 Edit `application.yml`:
 - `watchdog.check-interval`: Monitoring frequency (ms).
 - `summary-time`: Cron notation for Weekly summary time (eq- "0 0 11 * * WED")
-- `spring.mail`: SMTP settings for email. (username,encrypted password, recipients, host, port)
+- `spring.mail`: SMTP settings for email. (username, recipients, host, port)
 
-## Environment variables
--  `export JASYPT_ENCRYPTOR_PASSWORD=watchdog123`            
-  
 
 ## Running
-1. Build: `mvn clean install`
-2. Run: `mvn spring-boot:run`
+- Note: Make sure you run the application in the same terminal
+  after setting the environment variables.
+
+### Set Environment variables
+-  ` export JASYPT_ENCRYPTOR_PASSWORD=watchdog123 `
+-  ` export MAIL_PASSWORD=yourmailpassword `
+
+### Build and Run
+- Build: ` mvn clean install   `
+- Run: ` mvn spring-boot:run  `
 
 
+## Testing
 
-## Docker Container Monitoring
+###  Docker Container Monitoring
 
-### Start a Docker Container
-docker run --name test-container -d nginx
+1. Start a Docker Container
+`   docker run --name test-container -d nginx   `
 
-### Add it to monitoring:
+2. Add it to monitoring:
 
-curl -X POST "http://localhost:8080/watchdog/entities" \
+`  curl -X POST "http://localhost:8080/watchdog/entities" \
 -H "Content-Type: application/json" \
--d '{"name":"test-container","docker":true,"active":true}'
+-d '{"name":"test-container122","docker":true,"active":true}'  `
 
-### Trigger an alert:
-docker stop test-container
+3. Trigger an alert:
+`docker stop test-container`
 
+###  System Process Monitoring
 
+1. Start a test process:
+` sleep 3600 & `   # Note this PID
 
-### Start a test process:
-sleep 3600 &
-echo $!  # Note this PID
+2. Add it to monitoring:
 
-### Add it to monitoring:
-
-curl -X POST "http://localhost:8080/watchdog/entities" \
+`  curl -X POST "http://localhost:8080/watchdog/entities" \
 -H "Content-Type: application/json" \
--d '{"pid":PROCESS_PID,"docker":false,"active":true}'
+-d '{"pid":55881,"docker":false,"active":true}'  `
 
-### Trigger an alert:
-docker stop test-container
+3. Trigger an alert:
+` docker stop test-container `
 
-## List all monitored entities
+### Weekly Summary
 
-curl http://localhost:8080/watchdog/entities
+1. Set ` summary-time ` in ` application.yml ` to a time that is close to the current time.
 
+### List all monitored entities
+
+` curl http://localhost:8080/watchdog/entities `
+
+
+## Delete a monitored entity
+
+### Docker Container
+
+`  curl -X DELETE "http://localhost:8080/watchdog/entities/test-container"  `
+
+### System Process
+
+`  curl -X DELETE "http://localhost:8080/watchdog/entities/12345"  `
 
 
 

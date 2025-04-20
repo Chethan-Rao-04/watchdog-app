@@ -1,14 +1,10 @@
 package com.charite.watchdog.service;
 
 import com.charite.watchdog.model.MonitoredEntity;
-import com.charite.watchdog.service.EmailService;
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -23,29 +19,52 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Service responsible for monitoring Docker containers and system processes.
+ * <p>
+ * This service provides capabilities to add, remove, and monitor entities (Docker containers
+ * and system processes). It periodically checks the status of monitored entities,
+ * sends alerts when entities become inactive, and provides weekly summary reports.
+ * </p>
+ *
+ * @author Chethan Rao
+ * @since 1.0
+ */
 @Service
+@Slf4j
 public class WatchdogService {
     private final EmailService emailService;
     private final List<MonitoredEntity> entities = new ArrayList<>();
     private final DockerClient dockerClient;
-    // Thread-safe set to track entities that have already triggered alerts
+
+    /** Thread-safe set to track entities that have already triggered alerts */
     private final Set<String> alertedEntities = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Logger logger = LoggerFactory.getLogger(WatchdogService.class);
-    // Date formatter for human-readable timestamps
+
+    /** Date formatter for human-readable timestamps */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm:ss a");
 
     /**
      * Constructs a new WatchdogService with the specified email service.
      * Initializes the Docker client for container monitoring.
+     *
+     * @param emailService the service used to send email notifications
      */
     public WatchdogService(EmailService emailService) {
         this.emailService = emailService;
         this.dockerClient = DockerClientBuilder.getInstance().build();
-        logger.info("WatchdogService initialized with no static entities");
+        log.info("WatchdogService initialized with no static entities");
     }
+
     /**
      * Adds a new entity to be monitored.
+     * <p>
+     * For Docker containers, the name must be provided.
+     * For system processes, the PID must be provided.
      * Prevents duplicate entities from being added.
+     * </p>
+     *
+     * @param entity the entity to add for monitoring
+     * @throws IllegalArgumentException if an entity with the same identifier already exists
      */
     public void addEntity(MonitoredEntity entity) {
         boolean exists = entities.stream().anyMatch(e ->
@@ -54,9 +73,15 @@ public class WatchdogService {
         if (exists) throw new IllegalArgumentException("Entity already exists");
         entities.add(entity);
     }
+
     /**
      * Returns a copy of all monitored entities.
-
+     * <p>
+     * Creates a new list containing all currently monitored entities to prevent
+     * external modification of the internal list.
+     * </p>
+     *
+     * @return a list of all monitored entities
      */
     public List<MonitoredEntity> getEntities() {
         return new ArrayList<>(entities);
@@ -64,31 +89,34 @@ public class WatchdogService {
 
     /**
      * Periodically checks the status of all monitored entities.
-     * The check interval is configured in application properties.
+     * <p>
+     * This method is automatically scheduled to run at the interval specified
+     * by the {@code watchdog.check-interval} property. It verifies the status
+     * of each monitored entity and triggers alerts for inactive entities.
+     * </p>
      */
     @Scheduled(fixedRateString = "${watchdog.check-interval}")
     public void checkStatus() {
-        logger.info("Starting status check at {}", LocalDateTime.now());
+        log.info("Starting status check at {}", LocalDateTime.now());
         for (MonitoredEntity entity : entities) {
             if (entity.isDocker()) {
-                logger.debug("Checking Docker entity: {}", entity.getName());
+                log.debug("Checking Docker entity: {}", entity.getName());
                 checkDockerContainer(entity);
             } else {
-                logger.debug("Checking process entity: PID {}", entity.getPid());
+                log.debug("Checking process entity: PID {}", entity.getPid());
                 checkSystemProcess(entity);
             }
         }
-        logger.info("Status check completed at {}", LocalDateTime.now());
+        log.info("Status check completed at {}", LocalDateTime.now());
     }
 
-
     /**
      * Checks the status of a Docker container and sends alerts if it's down.
-     *
-     * @param entity the Docker container entity to check
-     */
-    /**
-     * Checks the status of a Docker container and sends alerts if it's down.
+     * <p>
+     * Verifies if the container is running using the Docker API.
+     * If the container is not running and hasn't been alerted yet,
+     * an alert email is sent and the container is marked as inactive.
+     * </p>
      *
      * @param entity the Docker container entity to check
      */
@@ -126,7 +154,7 @@ public class WatchdogService {
                         formattedTime = "unknown";
                     }
 
-                    logger.warn("Container {} stopped, last active at {}", entity.getName(), formattedTime);
+                    log.warn("Container {} stopped, last active at {}", entity.getName(), formattedTime);
 
                     // Send container down alert with improved formatting
                     sendContainerDownAlert(entity.getName(), formattedTime);
@@ -136,7 +164,7 @@ public class WatchdogService {
                 if (!alertedEntities.contains(entity.getName())) {
                     // Container not found and hasn't been alerted yet
                     entity.setActive(false);
-                    logger.warn("Container {} not found", entity.getName());
+                    log.warn("Container {} not found", entity.getName());
 
                     // Send container missing alert with improved formatting
                     sendContainerMissingAlert(entity.getName());
@@ -144,7 +172,7 @@ public class WatchdogService {
                 }
             }
         } catch (Exception e) {
-            logger.error("Failed to check Docker container {}: {}", entity.getName(), e.getMessage(), e);
+            log.error("Failed to check Docker container {}: {}", entity.getName(), e.getMessage(), e);
             emailService.sendEmail(
                     "Watchdog Error - Container " + entity.getName(),
                     "Dear Administrator,\n\n" +
@@ -158,6 +186,10 @@ public class WatchdogService {
 
     /**
      * Sends a formatted alert email for a container that has stopped.
+     * <p>
+     * Formats an email with details about the stopped container
+     * and sends it using the configured email service.
+     * </p>
      *
      * @param containerName the name of the stopped container
      * @param lastActive formatted timestamp of when the container was last active
@@ -177,6 +209,10 @@ public class WatchdogService {
 
     /**
      * Sends a formatted alert email for a container that cannot be found.
+     * <p>
+     * Formats an email with details about the missing container
+     * and sends it using the configured email service.
+     * </p>
      *
      * @param containerName the name of the missing container
      */
@@ -195,10 +231,14 @@ public class WatchdogService {
 
     /**
      * Checks the status of a system process and sends alerts if it's down.
+     * <p>
+     * Verifies if the process with the given PID is alive using Java's ProcessHandle API.
+     * If the process is not alive and hasn't been alerted yet, an alert email is sent
+     * and the process is marked as inactive.
+     * </p>
      *
      * @param entity the system process entity to check
      */
-
     private void checkSystemProcess(MonitoredEntity entity) {
         try {
             ProcessHandle.of(entity.getPid()).ifPresentOrElse(
@@ -213,7 +253,7 @@ public class WatchdogService {
                             String formattedTime = LocalDateTime.parse(entity.getLastActiveTimestamp())
                                     .format(DATE_FORMATTER);
 
-                            logger.warn("Process PID {} stopped at {}", entity.getPid(), formattedTime);
+                            log.warn("Process PID {} stopped at {}", entity.getPid(), formattedTime);
 
                             // Send process down alert with improved formatting
                             sendProcessDownAlert(entity.getPid(), formattedTime);
@@ -221,7 +261,7 @@ public class WatchdogService {
                         }
                     });
         } catch (Exception e) {
-            logger.error("Error checking process PID {}: {}", entity.getPid(), e.getMessage(), e);
+            log.error("Error checking process PID {}: {}", entity.getPid(), e.getMessage(), e);
             emailService.sendEmail(
                     "Watchdog Error - Process PID " + entity.getPid(),
                     "Dear Administrator,\n\n" +
@@ -235,6 +275,10 @@ public class WatchdogService {
 
     /**
      * Sends a formatted alert email for a process that has stopped.
+     * <p>
+     * Formats an email with details about the stopped process
+     * and sends it using the configured email service.
+     * </p>
      *
      * @param pid the process ID of the stopped process
      * @param stoppedAt formatted timestamp of when the process was detected as stopped
@@ -254,7 +298,12 @@ public class WatchdogService {
 
     /**
      * Sends a weekly summary report of all monitored entities.
-     * The schedule is configured in application properties.
+     * <p>
+     * This method is automatically scheduled to run at the time specified
+     * by the {@code watchdog.summary-time} cron expression. It generates a
+     * report containing the status of all monitored entities and sends it
+     * via email.
+     * </p>
      */
     @Scheduled(cron = "${watchdog.summary-time}")
     public void sendSummary() {
@@ -292,5 +341,51 @@ public class WatchdogService {
         }
 
         emailService.sendEmail("Weekly Watchdog Monitoring Summary", summary.toString());
+    }
+
+    /**
+     * Removes a Docker container from monitoring by its name.
+     * <p>
+     * Finds and removes the container with the given name from the monitored entities list.
+     * If the container is not found, an exception is thrown.
+     * </p>
+     *
+     * @param containerName the name of the Docker container to remove
+     * @throws IllegalArgumentException if the container is not being monitored
+     */
+    public void removeEntity(String containerName) {
+        boolean removed = entities.removeIf(e ->
+                e.isDocker() && containerName.equals(e.getName()));
+
+        if (!removed) {
+            throw new IllegalArgumentException("Docker container '" + containerName + "' not found");
+        }
+
+        // Remove from alerted entities if present
+        alertedEntities.remove(containerName);
+        log.info("Docker container '{}' removed from monitoring", containerName);
+    }
+
+    /**
+     * Removes a system process from monitoring by its PID.
+     * <p>
+     * Finds and removes the process with the given PID from the monitored entities list.
+     * If the process is not found, an exception is thrown.
+     * </p>
+     *
+     * @param pid the process ID of the system process to remove
+     * @throws IllegalArgumentException if the process is not being monitored
+     */
+    public void removeEntity(Long pid) {
+        boolean removed = entities.removeIf(e ->
+                !e.isDocker() && pid.equals(e.getPid()));
+
+        if (!removed) {
+            throw new IllegalArgumentException("Process with PID " + pid + " not found");
+        }
+
+        // Remove from alerted entities if present
+        alertedEntities.remove(pid.toString());
+        log.info("Process with PID {} removed from monitoring", pid);
     }
 }

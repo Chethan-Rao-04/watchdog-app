@@ -7,9 +7,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: chethancn82@gmail.com
-    #add your encrypted password here
-    # ( utilize config/EncryptPassword.java to encrypt the password)
-    password:
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -19,13 +17,9 @@ spring:
 
 
 watchdog:
-  check-interval: 600000         # Initial value
-  summary-time: 0 0 11 * * WED  # Initial value
-  email-recipients: # Add Recipients here
+  check-interval: 60000        # Initial value
+  summary-time: 0 00 10 * * MON  # Initial value
+  email-recipients: chethanrao82@gmail.com
 logging:
   level:
-    org.jasypt: DEBUG
     com.charite.watchdog.service: DEBUG
-jasypt:
-  encryptor:
-    algorithm: PBEWithMD5AndDES

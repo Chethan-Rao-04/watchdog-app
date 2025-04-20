@@ -6,24 +6,56 @@ import lombok.NoArgsConstructor;
 
 /**
  * Represents an entity monitored by the Watchdog system.
- * Can represent either a Docker container or a system process.
+ * <p>
+ * This class serves as a data model for entities monitored by the Watchdog service.
+ * It supports Docker containers (identified by name) and system processes (identified by PID).
+ * </p>
+ *
+ * @author Chethan Rao
+ * @since 1.0
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class MonitoredEntity {
-    /** The name of the Docker container, null for system processes */
+
+    /**
+     * The name of the Docker container.
+     * <p>
+     * Used as identifier for Docker containers.
+     * </p>
+     */
     private String name;
 
-    /** The process ID of the system process, null for Docker containers */
+    /**
+     * The process ID of the system process.
+     * <p>
+     * Used as identifier for system processes.
+     * </p>
+     */
     private Long pid;
 
-    /** Indicates whether this entity is a Docker container (true) or system process (false) */
-    private boolean isDocker;
+    /**
+     * The timestamp of when the entity was last active.
+     * <p>
+     * Records when a previously active entity became inactive.
+     * </p>
+     */
+    private String lastActiveTimestamp;
 
-    /** Current status of the entity (active/inactive) */
+    /**
+     * Indicates whether the entity is currently active.
+     * <p>
+     * True if container is running or process is alive.
+     * </p>
+     */
     private boolean isActive;
 
-    /** Timestamp of when the entity was last active, null if never inactive */
-    private String lastActiveTimestamp;
+    /**
+     * Indicates whether this entity is a Docker container.
+     * <p>
+     * Determines which identifier (name or PID) is used.
+     * </p>
+     */
+    private boolean isDocker;
 }
