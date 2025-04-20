@@ -17,7 +17,7 @@ spring:
 
 
 watchdog:
-  check-interval: 60000        # Initial value
+  check-interval: 600000       # Initial value
   summary-time: 0 00 10 * * MON  # Initial value
   email-recipients: chethanrao82@gmail.com
 logging:
