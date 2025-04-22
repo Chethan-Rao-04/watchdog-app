@@ -2,6 +2,7 @@
 
 A monitoring application for Docker containers and system processes with email alerts and weekly summaries.
 
+
 ## Features
 - **Continuous Monitoring**: Tracks Docker containers and system processes by their PID
 - **Instant Alerts**: Sends immediate email notifications when monitored entities stop
@@ -22,7 +23,11 @@ A monitoring application for Docker containers and system processes with email a
 - **Spring Mail**: For sending email notifications
 - **Jasypt**: For encrypting sensitive configuration values
 - **Lombok**: For reducing boilerplate code
--
+
+## License
+
+This project is licensed under the Apache License 2.0 .
+See the [LICENSE](LICENSE) file for details.
 
 ## Configuration
 

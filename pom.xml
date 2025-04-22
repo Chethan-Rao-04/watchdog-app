@@ -49,24 +49,6 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
-<!--    <dependencyManagement>
-        <dependencies>
-            &lt;!&ndash; Force Janino to latest secure version to fix CVE-2024-12798 &ndash;&gt;
-            <dependency>
-                <groupId>org.codehaus.janino</groupId>
-                <artifactId>janino</artifactId>
-                <version>3.1.11</version>
-            </dependency>
-
-            &lt;!&ndash; Force specific Spring version to fix CVE-2023-6378 &ndash;&gt;
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-web</artifactId>
-                <version>5.3.31</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>-->
-
     <build>
         <plugins>
             <plugin>
@@ -99,4 +81,11 @@
             </plugin>
         </plugins>
     </build>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 </project>
